@@ -101,9 +101,43 @@
       font-size: 1.5em;
       color: var(--vinho-medio-uniodonto);
     }
+
+    #resultado {
+      color: white !important;
+      font-size: 3em;
+      font-weight: bold;
+    }
+
+    .activate {
+      transform: translateY(0) !important;
+
+    }
+
+    .nomeSorteado {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: .5s;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: var(--vinho-medio-uniodonto);
+      transform: translateY(-100%);
+    }
   </style>
 </head>
 <body>
+
+  <!-- audio para ser tocado durante sorteio-->
+  <audio id="audio">
+    <source src="trilha silvio.mp3" type="audio/mpeg">
+  </audio>
+
+  <div class="nomeSorteado">
+    <div id="resultado"></div>
+  </div>
 
   <div class="identificacao">
     <label for="dataNascimento">Informe sua data de nascimento:</label>
@@ -114,7 +148,6 @@
   <div class="sorteio">
     <button id="sortearBtn">Sorteie um colega!</button>
     <div class="spinner" id="spinner"></div>
-    <div id="resultado"></div>
   </div>
 
   <script>
@@ -124,6 +157,9 @@
     document.getElementById('confirmarNascimento').addEventListener('click', async () => {
       const inputDOB = document.getElementById('dataNascimento').value;
       userDOB = formatarDataParaAPI(inputDOB);
+      // tovar o audio do sorteio
+      const audio = document.getElementById('audio');
+      audio.play();
 
       if (!userDOB) {
         alert("Data de nascimento inválida! Use o formato DD/MM/AAAA.");
@@ -173,6 +209,9 @@
     }
 
     document.getElementById('sortearBtn').addEventListener('click', async () => {
+
+      
+
       const sortearBtn = document.getElementById('sortearBtn');
       const spinner = document.getElementById('spinner');
       const resultado = document.getElementById('resultado');
@@ -190,10 +229,13 @@
         if (sorteados.length > 0) {
           const sorteadoIndex = Math.floor(Math.random() * sorteados.length);
           const sorteado = sorteados[sorteadoIndex];
+          const nomeSorteado = document.querySelector('.nomeSorteado');
 
           setTimeout(() => {
             spinner.style.display = 'none';
             resultado.innerText = `Sorteado: \n ${sorteado[1]}`;
+            nomeSorteado.classList.add('activate');
+
           }, 2000);
 
           const colaboradorIndex = funcionarios.findIndex(f => f[2] === userDOB);
