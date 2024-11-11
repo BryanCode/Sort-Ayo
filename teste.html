@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amigo Secreto</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Georama:ital,wght@0,100..900;1,100..900&display=swap');
+
+    :root {
+      --roxo-uniodonto: #b9f9ff;
+      --pessego-uniodonto: #ff9fad;
+      --ciano-uniodonto: #60ebff;
+      --lima-uniodonto: #e1ff7b;
+      --goiaba-uniodonto: #ff637e;
+      --vinho-medio-uniodonto: #a60069;
+      --vinho-ultra-uniodonto: #550039;
+      --vinho-claro-uniodonto: #bc5688;
+    }
+
+    input {
+      display: flex;
+      justify-content: center;
+      text-align: center;
+      margin-bottom: 1em;
+      font-size: 16px;
+      padding: 8px;
+      width: 110px;
+    }
+
+    body {
+      font-family: 'Georama', sans-serif;
+      background-color: var(--lima-uniodonto);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      flex-direction: column;
+    }
+
+    button {
+      background-color: var(--vinho-medio-uniodonto);
+      color: white;
+      font-size: 1.5rem;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s, background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: var(--vinho-claro-uniodonto);
+      transform: scale(1.05);
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+
+    #resultado {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 1.2rem;
+    }
+
+    .sorteio, .identificacao {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    } 
+
+    .sorteio {
+      display: none;
+    }
+
+    .spinner {
+      display: none;
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255, 255, 255, 0.3);
+      border-top-color: var(--vinho-medio-uniodonto);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    label {
+      margin-bottom: .5em;
+      font-weight: bold;
+      font-size: 1.5em;
+      color: var(--vinho-medio-uniodonto);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="identificacao">
+    <label for="dataNascimento">Informe sua data de nascimento:</label>
+    <input type="text" id="dataNascimento" placeholder="DD/MM/AAAA" maxlength="10" oninput="mascaraData(this)" />
+    <button id="confirmarNascimento">Confirmar Data de Nascimento</button>
+  </div>
+
+  <div class="sorteio">
+    <button id="sortearBtn">Sorteie um colega!</button>
+    <div class="spinner" id="spinner"></div>
+    <div id="resultado"></div>
+  </div>
+
+  <script>
+    const firebaseUrl = 'https://pesquisa-de-satisfacao-987f1-default-rtdb.firebaseio.com/funcionarios.json';
+    let userDOB;
+
+    document.getElementById('confirmarNascimento').addEventListener('click', async () => {
+      const inputDOB = document.getElementById('dataNascimento').value;
+      userDOB = formatarDataParaAPI(inputDOB);
+
+      if (!userDOB) {
+        alert("Data de nascimento inválida! Use o formato DD/MM/AAAA.");
+        return;
+      }
+
+      try {
+        const response = await fetch(firebaseUrl);
+        if (!response.ok) throw new Error('Erro ao buscar dados do Firebase.');
+
+        const funcionarios = await response.json();
+        const colaborador = funcionarios.find(f => f[2] === userDOB);
+
+        if (!colaborador) {
+          alert("Data de nascimento não encontrada!");
+          location.reload();
+          return;
+        }
+
+        if (colaborador[3] === 1) {
+          alert("Você já realizou o sorteio!");
+          location.reload();
+          return;
+        }
+
+        document.querySelector('.sorteio').style.display = 'flex';
+        document.querySelector('.identificacao').style.display = 'none';
+
+      } catch (error) {
+        console.error('Erro:', error);
+      }
+    });
+
+    function mascaraData(input) {
+      let value = input.value.replace(/\D/g, ""); 
+      value = value.replace(/^(\d{2})(\d)/, "$1/$2"); 
+      value = value.replace(/(\d{2})(\d)/, "$1/$2");  
+      input.value = value;
+    }
+
+    function formatarDataParaAPI(data) {
+      const partes = data.split('/');
+      if (partes.length !== 3) return null;
+      const [dia, mes, ano] = partes;
+      if (dia.length !== 2 || mes.length !== 2 || ano.length !== 4) return null;
+      return `${ano}-${mes}-${dia}`;
+    }
+
+    document.getElementById('sortearBtn').addEventListener('click', async () => {
+      const sortearBtn = document.getElementById('sortearBtn');
+      const spinner = document.getElementById('spinner');
+      const resultado = document.getElementById('resultado');
+
+      sortearBtn.style.display = 'none';
+      spinner.style.display = 'block';
+
+      try {
+        const response = await fetch(firebaseUrl);
+        if (!response.ok) throw new Error('Erro ao buscar dados do Firebase.');
+
+        const funcionarios = await response.json();
+        const sorteados = funcionarios.filter(f => f[0] === null && f[2] !== userDOB);
+
+        if (sorteados.length > 0) {
+          const sorteadoIndex = Math.floor(Math.random() * sorteados.length);
+          const sorteado = sorteados[sorteadoIndex];
+
+          setTimeout(() => {
+            spinner.style.display = 'none';
+            resultado.innerText = `Sorteado: \n ${sorteado[1]}`;
+          }, 2000);
+
+          const colaboradorIndex = funcionarios.findIndex(f => f[2] === userDOB);
+          await fetch(`https://pesquisa-de-satisfacao-987f1-default-rtdb.firebaseio.com/funcionarios/${colaboradorIndex}/3.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(1)
+          });
+
+          const sorteadoIndexGlobal = funcionarios.findIndex(f => f[1] === sorteado[1]);
+          await fetch(`https://pesquisa-de-satisfacao-987f1-default-rtdb.firebaseio.com/funcionarios/${sorteadoIndexGlobal}/0.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(1)
+          });
+        } else {
+          resultado.innerText = "Nenhum colega disponível para sorteio!";
+        }
+      } catch (error) {
+        console.error('Erro:', error);
+      }
+    });
+  </script>
+</body>
+</html>
